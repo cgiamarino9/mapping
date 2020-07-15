@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Add a geocoder</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.css" rel="stylesheet" />
+<style>
+	body { margin: 0; padding: 0; }
+	#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+	.geocoder-dropdown-item {
+	padding: 5px;
+	}
+	.geocoder-dropdown-icon {
+	margin-right: 5px;
+	}
+	.geocoder-dropdown-text {
+	color: #5a3fc0;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: larger;
+	}
+	h2,
+h3 {
+  margin: 10px;
+  font-size: 1.2em;
+}
+
+h3 {
+  font-size: 1em;
+}
+
+p {
+  font-size: 0.85em;
+  margin: 10px;
+  text-align: left;
+}
+
+/**
+* Create a position for the map
+* on the page */
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+/**
+* Set rules for how the map overlays
+* (information box and legend) will be displayed
+* on the page. */
+.map-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background: rgba(255, 255, 255, 0.8);
+  margin-right: 20px;
+  font-family: Arial, sans-serif;
+  overflow: auto;
+  border-radius: 3px;
+}
+
+#features {
+  top: 0;
+  height: 100px;
+  margin-top: 20px;
+  width: 250px;
+}
+
+#legend {
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  line-height: 18px;
+  height: 110px;
+  margin-bottom: 40px;
+  width: 150px;
+}
+
+.legend-key {
+  display: inline-block;
+  border-radius: 20%;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+}
+</style>
+</head>
+<body>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.min.js"></script>
+<link
+    rel="stylesheet"
+    href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.css"
+    type="text/css"
+/>
+<!-- Promise polyfill script required to use Mapbox GL Geocoder in IE 11 -->
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+<div id="map"></div>
+<div class='map-overlay' id='features'><h2>41.18d; the sit-lie law</h2><div id='pd'><p>Neighborhood</p></div></div>
+<div class='map-overlay' id='legend'></div>
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoiY2dpYW1hcmlubyIsImEiOiJjanAyd2hwNWUwYnJ3M3dzMHF4MnJkZ29uIn0.7tLnplw65tLmywvvIPGSKA';
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/cgiamarino/ck7cfnye806v31iqlkrt6qxbu',
+        center: [-118.31, 34.06],
+        zoom: 13
+    });
+
+		map.addControl(new mapboxgl.FullscreenControl(), 'bottom-right');
+		// Add zoom and rotation controls to the map.
+		map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+
+		// geocoder
+		var geocoder = new MapboxGeocoder({
+			accessToken: mapboxgl.accessToken,
+			types: 'poi',
+			// see https://docs.mapbox.com/api/search/#geocoding-response-object for information about the schema of each response feature
+			render: function(item) {
+			// extract the item's maki icon or use a default
+			var maki = item.properties.maki || 'marker';
+			return (
+			"<div class='geocoder-dropdown-item'><img class='geocoder-dropdown-icon' src='https://unpkg.com/@mapbox/maki@6.1.0/icons/" +
+			maki +
+			"-15.svg'><span class='geocoder-dropdown-text'>" +
+			item.text +
+			'</span></div>'
+			);
+			},
+			mapboxgl: mapboxgl
+			});
+			map.addControl(geocoder);
+
+				// load geojson sources
+				map.on('load', function() {
+					map.addSource('city', {
+						'type': 'geojson',
+						'data': 'https://raw.githubusercontent.com/cgiamarino9/mapping/master/city.geojson'
+					});
+					map.addLayer({
+						'id': 'city-fill',
+						'type': 'line',
+						'source': 'city',
+						'layout': {},
+						'paint':{
+							'line-color': '#1C1B1C',
+
+						}
+				});
+				map.addSource('ban', {
+							'type': 'geojson',
+							'data': 'https://raw.githubusercontent.com/cgiamarino9/mapping/master/properties.geojson'
+				});
+					map.addLayer({
+							'id': 'ban-fill',
+							'type': 'line',
+							'source': 'ban',
+							'layout': {},
+							'paint': {
+							'line-color':[
+								'match',
+								['get', 'category'],
+								'special_venues',
+								'#e41a1c',
+								'public_schools',
+								'#377eb8',
+								'private_schools',
+								'#4daf4a',
+								'parks',
+								'#984ea3',
+								'homeless',
+								'#ff7f00',
+								'childcare',
+								'#ffff33', 'ffff33'
+							],
+							'line-opacity': 1,
+
+						}
+
+				});
+
+				var layers = ['special_venues', 'public_schools', 'private_schools', 'parks', 'homeless', 'childcare', 'LA'];
+				var colors = ['#e41a1c', '#377eb8','#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#1C1B1C'];
+				// create legend
+        for (i = 0; i < layers.length; i++) {
+          var layer = layers[i];
+          var color = colors[i];
+          var item = document.createElement('div');
+          var key = document.createElement('span');
+          key.className = 'legend-key';
+          key.style.backgroundColor = color;
+
+          var value = document.createElement('span');
+          value.innerHTML = layer;
+          item.appendChild(key);
+          item.appendChild(value);
+          legend.appendChild(item);
+        }
+					map.addSource('buffer', {
+						'type': 'geojson',
+						'data': 'https://raw.githubusercontent.com/cgiamarino9/mapping/master/hood.geojson'
+					});
+					map.addLayer({
+						'id': 'buffer-fill',
+						'type': 'fill',
+						'source': 'buffer',
+						'layout': {},
+						'paint':{
+							'fill-color': '#1c1b1c',
+							'fill-opacity': 0.2
+						}
+				});
+
+
+
+				// change info window on hover
+			map.on('mousemove', function(e) {
+				var states = map.queryRenderedFeatures(e.point, {
+					layers: ['buffer-fill']
+				});
+
+				if (states.length > 0) {
+					document.getElementById('pd').innerHTML =
+						'<h3><strong>' +
+						states[0].properties.name +
+						'</strong></h3><p><strong><em>'
+				} else {
+					document.getElementById('pd').innerHTML =
+						'<p>Neighborhood</p>';
+				}
+			});
+
+				map.on('click', 'ban-fill', function(e) {
+					new mapboxgl.Popup()
+					.setLngLat(e.lngLat)
+					.setHTML(e.features[0].properties.category)
+					.addTo(map);
+					});
+
+
+
+					// Change the cursor to a pointer when the mouse is over the states layer.
+					map.on('mouseenter', 'ban-fill', function() {
+					map.getCanvas().style.cursor = 'pointer';
+					});
+
+					// Change it back to a pointer when it leaves.
+					map.on('mouseleave', 'ban-fill', function() {
+					map.getCanvas().style.cursor = '';
+					});
+
+				map.on('click', 'buffer-fill', function(e) {
+					new mapboxgl.Popup()
+					.setLngLat(e.lngLat)
+					.setHTML(e.features[0].properties.name)
+					.addTo(map);
+					});
+
+
+
+					// Change the cursor to a pointer when the mouse is over the states layer.
+					map.on('mouseenter', 'buffer-fill', function() {
+					map.getCanvas().style.cursor = 'pointer';
+					});
+
+					// Change it back to a pointer when it leaves.
+					map.on('mouseleave', 'buffer-fill', function() {
+					map.getCanvas().style.cursor = '';
+					});
+
+
+			});
+
+</script>
+
+</body>
+</html>
